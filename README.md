@@ -6,7 +6,7 @@
 ```$ smigrep myFunction *.c *.h```
 
 # Purpose
-Make searching for a string in a directory and all subdirectories in all or certain files easier, faster, and better on the eyes
+A command line tool to make searching for strings in a project easier, faster, and better on the eyes
 
 ## Example Usage
 For this example, we will use 4 files: baz.c, foo.c, bar.h, and bat.py - each with 5 lines.
