@@ -1,0 +1,217 @@
+#!/bin/bash
+
+# original concept by Derek :] https://framistats.com/2016/06/24/find-and-edit-matching-files/
+# Made better by me! :D
+
+# NOTE: Currently, searchstring is case sensitive. To make this program ignore case, add a lowercase i to the flags for
+# grep on lines 165 and 174. Edit the usage statement as necessary
+
+# TODO
+# allow user to preview lines surrounding a result, likely using something similar to the "#f" option
+
+# usage message
+if [ $# -lt 1 ]; then
+	echo "Usage:"
+	echo "	smigrep searchstring [filetype[s]]"
+	echo "Example:"
+	echo "	smigrep myFunction *.c *.h"
+	exit
+fi
+
+searchstring=$1
+
+# check number of input parameters
+if [ $# -lt 2 ]; then
+	PARAM=".*"
+elif [ $# -eq 2 ]; then
+	PARAM=./$(echo "$2" | sed -r "s/\./\\\./g" | sed -r "s/\*/\.\*/g")
+else
+	# remove duplicate extensions if they exist
+	in=$(echo ${@:2} | sed -r "s/\./\\\./g" | sed -r "s/\*/\.\*/g")
+	exts=$(awk '{sep=""; for (i=1; i<=NF; i++) {if (!x[$i]++) {printf "%s%s", sep, $i} sep=OFS} print ""}' <<< $in)
+	PARAM="./\($(sed -r "s/ /\\\|/g" <<< $exts)\)"
+fi
+
+# get the max number of lines that the terminal can display
+lines=$(tput lines)
+
+# function for printing the results
+displayResults() {
+	local results=$(cat $1 | wc -l)
+	# if no results, show failure message and exit
+	if [ $results -eq 0 ]; then
+		echo "No matches found"
+		rm -f /tmp/tmp.* && exit
+	# only one result
+	elif [ $results -eq 1 ]; then
+		# if file is already chosen, go straight into the only occurence in the file
+		[ ! -f $foundfiles ] && vim +/$searchstring $(echo $chosenfile | $stripcolor) && rm -f /tmp/tmp.* && exit
+		# if the file is not yet chosen, ask the user if they want to go to it
+		cat $1
+		echo
+		echo " One match found, go to it?"
+		echo " Enter, Space, or 1: Go"
+		echo " Anything else: Cancel"
+		read -n 1 c
+		# go into the file if enter, space, or 1 are pressed
+		{ [ "$c" = "" ] || [ $c == 1 ]; } && vim +/$searchstring $(cat $1 | awk -F ":" '{printf $2}' | $stripcolor)
+		# if the user does not want to go into the file, exit
+		echo
+		rm -f /tmp/tmp.* && exit
+	# enough results that the first few results get taken off the terminal screen by the messages in lines 51-54
+	elif [ "$results" -lt "$(( $lines+1 ))" ] && [ "$results" -gt "$(( $lines-7 ))" ]; then
+		echo $chosenfile
+		# if only running once, compensate by remove two lines from head to display 'one file found' message and file name
+		[ $b -eq 1 ] && (( lines-=2 ))
+		# fill the screen such that only results are shown
+		[ $b -eq 1 ] && head -$(( $lines-2 )) $1 || head -$(( $lines-3 )) $1
+		# make the remainder blank lines
+		for i in $(seq 1 $(( $lines-3 - $results ))); do echo; done
+		# prompt for input to continue to choosing the file
+		echo "--More--(SPACE)"
+		read -n 1
+		echo
+		# restore number of lines to original amount
+		[ $b -eq 1 ] && (( lines+=2 ))
+		# if results continue to get cut off by the previous screen, print the rest of them
+		if [ $results -gt $(( $lines-2 )) ] && [ $results -lt $(( $lines+1 )) ]; then
+			# continued compensation
+			[ $b -eq 1 ] && (( results+=1 ))
+			tail -$(( $results - $lines+3 )) $1
+		fi
+	# lots of results
+	elif [ $results -gt $lines ]; then
+		echo $chosenfile
+		more $1
+		echo
+	# just a few results
+	else
+		echo $chosenfile
+		cat $1
+		echo
+	fi
+	# instructions to choose the file or line number
+	[ -f $foundfiles ] && echo " Type corresponding number, then Enter or Space, to make a selection" || echo " Type corresponding number to make a selection"
+	[ -f $foundfiles ] && echo " #f: Go to First match inside file" # this line does not have to be printed if the file has already been chosen
+	echo " Once in file, n to go to next instance, N to go to previous instance (if multiple instances)"
+	echo " Anything else: Cancel"
+}
+
+# function for taking user input to choose the file or line number
+function decide() {
+	# count the number of results
+	local numfiles=$(egrep '^([0-9]| )[0-9]' $1 | wc -l)
+	# count the number of characters the user can enter to make their choice
+	local range=$(wc -c <<< $numfiles)
+	# if choosing line number, number of typable characters is one less
+	[ ! -f $foundfiles ] && (( range-- ))
+	# instantiate the user input
+	chz=''
+	for i in $(seq 1 $range); do
+		# read in 1 character of input
+		read -n 1 chr
+		# if the first character is not a number, exit
+		if [ $i -eq 1 ] && [[ ! $chr = [1-9] ]]; then
+			echo
+			rm -f /tmp/tmp.* && exit
+		fi
+		# checks if an option has been entered after the first number
+		# rearrange some of these if statement conditions
+		if [ -f $foundfiles ] && [ $i -gt 1 ]; then
+			# if next character is an "f",
+			# go to the first occurrence of searchstring in the chosen file
+			# only applicable for choosing a file
+			if [[ $chr = f ]]; then
+				firstline=$(egrep '^[ ]*'$chz'\:' $foundfiles | awk -F ":" '{printf $2}')
+				vim +/$searchstring +$(egrep '^[ ]*'$chz':' $foundfiles | awk -F ":" '{printf $3}' | $stripcolor) $(echo $firstline | $stripcolor) && echo && rm -f /tmp/tmp.* && exit
+			fi
+			# if the user presses enter or space after entering a number,
+			# exit this function and continue
+			if [ "$chr" = "" ]; then
+				echo && echo
+				return
+			fi
+		fi
+		# concatenate typed characters
+		chz=$chz$chr
+		# keeps the input as numbers and keeps input in range, otherwise exit
+		{ [[ ! $chz =~ ^[0-9]+$ ]] || [ $numfiles -lt $chz ]; } && echo && rm -f /tmp/tmp.* && exit
+	done
+	echo
+}
+
+# sorts found files by extension input order
+function sortresults() {
+	# turn input extensions into array
+	local args=($exts)
+	# loop through each extension in the order that they were input
+	for i in "${args[@]}"; do
+		while read -r line; do
+			# match each result against the input order
+			[[ $line = *$i* ]] && grep -nsHI --color=always $searchstring $line >> $2
+		done < $1
+	done
+}
+
+# if foundfiles exists, it means that a file hasn't been chosen yet
+foundfiles=$(mktemp)
+# remove grep colors from text if necessary
+stripcolor='sed -r s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
+# if multiple extensions, sort them according to input order
+if [[ $PARAM = *"|"* ]]; then
+	unsorted=$(mktemp)
+	sorted=$(mktemp)
+	# find all the matches and sort them alphabetically
+	find -regex "$PARAM" -type f | xargs grep -slHI $searchstring | sort -d > $unsorted
+	# sort the matches
+	sortresults $unsorted $sorted
+	# display the results nicely while preserving the order
+	cat $sorted | awk -F ":" '!a[$1]++{printf "%2d: ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}' > $foundfiles
+	rm $unsorted
+	rm $sorted
+# if 1 or no extensions, search for searchstring, save the results in a file, and print alphabetically and nicely
+else
+	find -regex "$PARAM" -type f | sort -d | xargs grep -nsHI --color=always $searchstring | awk -F ":" '!a[$1]++{printf "%2d: ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}' > $foundfiles
+fi
+# DETAILS ABOUT THE USE OF AWK, from https://framistats.com/2016/06/24/find-and-edit-matching-files/
+# !a[$1]++{printf "%2d: ", ++num} - prints line numbers for the first occurrence of a file
+# b[$1]++{printf " "}             - whitespace otherwise
+# boolean to decide if displayResults and decide need to be run twice
+b=0
+# if only one file found with multiple instances, don't need to run displayResults and decide twice
+if [ $(egrep '^([0-9]| )[0-9]' $foundfiles | wc -l) -eq 1 ] && [ $(cat $foundfiles | wc -l) -gt 1 ]; then
+	(( b++ ))
+	chz=1
+	echo
+	echo 'One file found:'
+else
+	displayResults $foundfiles
+	decide $foundfiles
+fi
+# takes the input from user and appends a colon, makes for a stronger regex
+chosenfileRegex=$(egrep '^[ ]*'$chz'\:' $foundfiles | awk -F ":" '{printf $2}' | $stripcolor)":"
+# get just the filename
+chosenfile=${chosenfileRegex::-1}
+entriesinfile=$(mktemp)
+# boolean to make the following while loop not run longer than it has to
+br=0
+# grab all the lines in the selected file only
+while read -r line; do
+	# make sure only matches in the specified file are kept
+	[[ $(echo $line | $stripcolor) = *$(echo $chosenfileRegex | $stripcolor)* ]] && br=1 && echo $line | cut -c4- | cut -d: -f2- >> $entriesinfile
+	# break the loop after all the matches for the specified file have been found
+	[[ ! $(echo $line | $stripcolor) = *$(echo $chosenfileRegex | $stripcolor)* ]] && [ $br == 1 ] && break
+done < $foundfiles
+# if organizedentries exists, it means that a line number in the chosen file hasn't been chosen yet
+organizedentries=$(mktemp)
+# print the line matches nicely
+cat $entriesinfile | awk -F ":" '!a[$1]++{printf "%2d:   ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}' > $organizedentries
+rm $entriesinfile
+# after the file to open is chosen, foundfiles gets deleted
+rm $foundfiles
+displayResults $organizedentries
+decide $organizedentries
+# takes the input from user and uses it to select the line number
+chosenlinenumber=$(egrep '^[ ]*'$chz'\:' $organizedentries | awk -F ":" '{printf $2}')
+# go into the chosen line number
+vim +/$searchstring +$(echo $chosenlinenumber | $stripcolor) $(echo $chosenfile | $stripcolor) && rm -f /tmp/tmp.*
