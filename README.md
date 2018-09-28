@@ -22,6 +22,10 @@ If multiple instances of the string exist in a file, the user may pick which ins
 Once a file [and instance] is selected by the user, vim will automatically open the file to the selected instance.
 Vim is opened using the +/{string} option, allowing the user to use n and N to go forward and backward between instances, respectively.
 
+If the user does not want to select an instance and just instantly go into a file, the letter "f" may be typed after a file number to go to the first instance.
+
+![smigrep foo f](./pictures/pic11.png)
+
 
 SMIgrep can be used to search for a string in all files that match a regex glob
 
@@ -52,10 +56,6 @@ If multiple file extensions are provided, SMIgrep will print the results in the 
 What if there are no matches?
 
 ![smigrep no matches](./pictures/pic10.png)
-
-If the user does not want to select an instance and just instantly go into a file, the letter "f" may be typed after a file number to go to the first instance.
-
-![smigrep foo f](./pictures/pic11.png)
 
 Additionally, if you use bash and have SMIgrep aliased (alias smigrep='path/to/smigrep'), you can use SMIgrep on the vim command line:
 
