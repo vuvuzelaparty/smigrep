@@ -62,5 +62,6 @@ Additionally, if you use bash and have SMIgrep aliased (alias smigrep='path/to/s
 ```:!smigrep searchstring [extension[s]]```
 
 The same applies if you use zsh, but you need your .zshenv set (cp ~/.zshrc ~/.zshenv) to make aliases in your .zshrc available in vim.
+The noglob option must also be set (alias smigrep='noglob path/to/smigrep').
 
 Enjoy! Feedback is always much appreciated :)
