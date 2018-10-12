@@ -40,8 +40,7 @@ displayResults() {
 	local results=$(cat $1 | wc -l)
 	# if no results, show failure message and exit
 	if [ $results -eq 0 ]; then
-		echo "No matches found"
-		rm -f /tmp/tmp.* && exit
+		echo "No matches found" && rm -f /tmp/tmp.* && exit
 	# only one result
 	elif [ $results -eq 1 ]; then
 		# if file is already chosen, go straight into the only occurence in the file
@@ -56,12 +55,11 @@ displayResults() {
 		# go into the file if enter, space, or 1 are pressed
 		{ [ "$c" = "" ] || [ $c == 1 ]; } && vim +/$searchstring $(cat $1 | awk -F ":" '{printf $2}' | $stripcolor)
 		# if the user does not want to go into the file, exit
-		echo
-		rm -f /tmp/tmp.* && exit
+		echo && rm -f /tmp/tmp.* && exit
 	# enough results that the first few results get taken off the terminal screen by the messages in lines 51-54
 	elif [ "$results" -lt "$(( $lines+1 ))" ] && [ "$results" -gt "$(( $lines-7 ))" ]; then
 		echo $chosenfile
-		# if only running once, compensate by remove two lines from head to display 'one file found' message and file name
+		# if only running once, compensate by removing two lines from head to display 'one file found' message and filename
 		[ $b -eq 1 ] && (( lines-=2 ))
 		# fill the screen such that only results are shown
 		[ $b -eq 1 ] && head -$(( $lines-2 )) $1 || head -$(( $lines-3 )) $1
