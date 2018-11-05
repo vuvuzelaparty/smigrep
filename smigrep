@@ -4,7 +4,7 @@
 # Made better by me! :D
 
 # NOTE: Currently, searchstring is case sensitive. To make this program ignore case, add a lowercase i to the flags for
-# grep on lines 165 and 174. Edit the usage statement as necessary
+# grep on lines 163 and 172. Edit the usage statement as necessary
 
 # TODO
 # allow user to preview lines surrounding a result, likely using something similar to the "#f" option
@@ -180,8 +180,7 @@ b=0
 if [ $(egrep '^([0-9]| )[0-9]' $foundfiles | wc -l) -eq 1 ] && [ $(cat $foundfiles | wc -l) -gt 1 ]; then
 	(( b++ ))
 	chz=1
-	echo
-	echo 'One file found:'
+	echo && echo 'One file found:'
 else
 	displayResults $foundfiles
 	decide $foundfiles
