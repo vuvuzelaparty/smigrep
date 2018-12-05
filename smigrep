@@ -4,7 +4,7 @@
 # Made better by me! :D
 
 # NOTE: Currently, searchstring is case sensitive. To make this program ignore case, add a lowercase i to the flags for
-# grep on lines 163 and 172. Edit the usage statement as necessary
+# grep on lines 169 and 178. Edit the usage statement as necessary
 
 # TODO
 # allow user to preview lines surrounding a result, likely using something similar to the "#f" option
