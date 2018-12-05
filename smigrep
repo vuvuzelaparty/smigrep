@@ -96,7 +96,7 @@ displayResults() {
 }
 
 # function for taking user input to choose the file or line number
-function decide() {
+decide() {
 	# count the number of results
 	local numfiles=$(egrep '^([0-9]| )[0-9]' $1 | wc -l)
 	# count the number of characters the user can enter to make their choice
@@ -110,8 +110,7 @@ function decide() {
 		read -n 1 chr
 		# if the first character is not a number, exit
 		if [ $i -eq 1 ] && [[ ! $chr = [1-9] ]]; then
-			echo
-			rm -f /tmp/tmp.* && exit
+			echo && rm -f /tmp/tmp.* && exit
 		fi
 		# checks if an option has been entered after the first number
 		# rearrange some of these if statement conditions
@@ -139,7 +138,7 @@ function decide() {
 }
 
 # sorts found files by extension input order
-function sortresults() {
+sortresults() {
 	# turn input extensions into array
 	local args=($exts)
 	# loop through each extension in the order that they were input
@@ -149,6 +148,13 @@ function sortresults() {
 			[[ $line = *$i* ]] && grep -nsHI --color=always $searchstring $line >> $2
 		done < $1
 	done
+}
+
+niceprint() {
+	awk -F ":" '!a[$1]++{printf "%2d: ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}'
+	# from https://framistats.com/2016/06/24/find-and-edit-matching-files/
+	# !a[$1]++{printf "%2d: ", ++num}  - finds matching files, prints line numbers for the first occurrence of a file
+	# b[$1]++{printf " "}              - whitespace otherwise
 }
 
 # if foundfiles exists, it means that a file hasn't been chosen yet
@@ -164,19 +170,16 @@ if [[ $PARAM = *"|"* ]]; then
 	# sort the matches
 	sortresults $unsorted $sorted
 	# display the results nicely while preserving the order
-	cat $sorted | awk -F ":" '!a[$1]++{printf "%2d: ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}' > $foundfiles
+	cat $sorted | niceprint > $foundfiles
 	rm $unsorted
 	rm $sorted
 # if 1 or no extensions, search for searchstring, save the results in a file, and print alphabetically and nicely
 else
-	find -regex "$PARAM" -type f | sort -d | xargs grep -nsHI --color=always $searchstring | awk -F ":" '!a[$1]++{printf "%2d: ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}' > $foundfiles
+	find -regex "$PARAM" -type f | sort -d | xargs grep -nsHI --color=always $searchstring | niceprint > $foundfiles
 fi
-# awk usage in lines 169, 174, 208 - from https://framistats.com/2016/06/24/find-and-edit-matching-files/
-# !a[$1]++{printf "%2d: ", ++num}  - finds matching files, prints line numbers for the first occurrence of a file
-# b[$1]++{printf " "}              - whitespace otherwise
-# boolean to decide if displayResults and decide need to be run twice
+# boolean to decide if displayResults() and decide() need to be run twice
 b=0
-# if only one file found with multiple instances, don't need to run displayResults and decide twice
+# if only one file found with multiple instances, don't need to run displayResults() and decide() twice
 if [ $(egrep '^([0-9]| )[0-9]' $foundfiles | wc -l) -eq 1 ] && [ $(cat $foundfiles | wc -l) -gt 1 ]; then
 	(( b++ ))
 	chz=1
@@ -202,7 +205,7 @@ done < $foundfiles
 # if organizedentries exists, it means that a line number in the chosen file hasn't been chosen yet
 organizedentries=$(mktemp)
 # print the line matches nicely
-cat $entriesinfile | awk -F ":" '!a[$1]++{printf "%2d:   ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}' > $organizedentries
+cat $entriesinfile | niceprint > $organizedentries
 rm $entriesinfile
 # after the file to open is chosen, foundfiles gets deleted
 rm $foundfiles
