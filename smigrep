@@ -153,8 +153,8 @@ sortresults() {
 niceprint() {
 	awk -F ":" '!a[$1]++{printf "%2d: ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}'
 	# from https://framistats.com/2016/06/24/find-and-edit-matching-files/
-	# !a[$1]++{printf "%2d: ", ++num}  - finds matching files, prints line numbers for the first occurrence of a file
-	# b[$1]++{printf " "}              - whitespace otherwise
+	# !a[$1]++{printf "%2d: ", ++num} - finds matching files, prints line numbers for the first occurrence of a file
+	# b[$1]++{printf " "}             - whitespace otherwise
 }
 
 # if foundfiles exists, it means that a file hasn't been chosen yet
