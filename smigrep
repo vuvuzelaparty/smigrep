@@ -44,7 +44,7 @@ displayResults() {
 	# only one result
 	elif [ $results -eq 1 ]; then
 		# if file is already chosen, go straight into the only occurence in the file
-		[ ! -f $foundfiles ] && vim +/$searchstring $(echo $chosenfile | $stripcolor) && rm -f /tmp/tmp.* && exit
+		[ ! -f $foundfiles ] && vim +/$searchstring $chosenfile && rm -f /tmp/tmp.* && exit
 		# if the file is not yet chosen, ask the user if they want to go to it
 		cat $1
 		echo
@@ -119,8 +119,8 @@ decide() {
 			# go to the first occurrence of searchstring in the chosen file
 			# only applicable for choosing a file
 			if [[ $chr = f ]]; then
-				firstline=$(egrep '^[ ]*'$chz'\:' $foundfiles | awk -F ":" '{printf $2}')
-				vim +/$searchstring +$(egrep '^[ ]*'$chz':' $foundfiles | awk -F ":" '{printf $3}' | $stripcolor) $(echo $firstline | $stripcolor) && echo && rm -f /tmp/tmp.* && exit
+				firstline=$(egrep '^[ ]*'$chz'\:' $foundfiles | awk -F ":" '{printf $2}' | $stripcolor)
+				vim +/$searchstring +$(egrep '^[ ]*'$chz':' $foundfiles | awk -F ":" '{printf $3}' | $stripcolor) $firstline && echo && rm -f /tmp/tmp.* && exit
 			fi
 			# if the user presses enter or space after entering a number,
 			# exit this function and continue
@@ -214,4 +214,4 @@ decide $organizedentries
 # takes the input from user and uses it to select the line number
 chosenlinenumber=$(egrep '^[ ]*'$chz'\:' $organizedentries | awk -F ":" '{printf $2}')
 # go into the chosen line number
-vim +/$searchstring +$(echo $chosenlinenumber | $stripcolor) $(echo $chosenfile | $stripcolor) && rm -f /tmp/tmp.*
+vim +/$searchstring +$(echo $chosenlinenumber | $stripcolor) $chosenfile && rm -f /tmp/tmp.*
