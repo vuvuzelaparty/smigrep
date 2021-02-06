@@ -12,7 +12,7 @@
 # usage message
 if [ $# -lt 1 ]; then
 	echo "Usage:"
-	echo "	smigrep searchstring [filetype[s]]"
+	echo "	smigrep searchstring [file[s]]"
 	echo "Example:"
 	echo "	smigrep myFunction *.c *.h"
 	exit
