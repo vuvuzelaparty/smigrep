@@ -1,7 +1,7 @@
 # SMIgrep
 ### Slightly More Interactive grep
 ##### Usage:
-```$ smigrep searchstring [extension[s]]```
+```$ smigrep searchstring [file[s]]```
 ##### Example:
 ```$ smigrep myFunction *.c *.h```
 
