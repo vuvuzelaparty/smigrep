@@ -38,6 +38,7 @@ lines=$(tput lines)
 # function for printing the results
 displayResults() {
 	local results=$(cat $1 | wc -l)
+	local files=$1
 	# if no results, show failure message and exit
 	if [ $results -eq 0 ]; then
 		echo "No matches found" && rm -f /tmp/tmp.* && exit
@@ -46,46 +47,46 @@ displayResults() {
 		# if file is already chosen, go straight into the only occurence in the file
 		[ ! -f $foundfiles ] && vim +/$searchstring $chosenfile && rm -f /tmp/tmp.* && exit
 		# if the file is not yet chosen, ask the user if they want to go to it
-		cat $1
+		cat $files
 		echo
 		echo " One match found, go to it?"
 		echo " Enter, Space, or 1: Go"
 		echo " Anything else: Cancel"
 		read -n 1 c
 		# go into the file if enter, space, or 1 are pressed
-		{ [ "$c" = "" ] || [ $c == 1 ]; } && vim +/$searchstring $(cat $1 | awk -F ":" '{printf $2}' | $stripcolor)
+		{ [ "$c" = "" ] || [ $c == 1 ]; } && vim +/$searchstring $(cat $files | awk -F ":" '{printf $2}' | $stripcolor)
 		# if the user does not want to go into the file, exit
 		echo && rm -f /tmp/tmp.* && exit
 	# enough results that the first few results get taken off the terminal screen by the messages in lines 51-54
-	elif [ "$results" -lt "$(( $lines+1 ))" ] && [ "$results" -gt "$(( $lines-7 ))" ]; then
+	elif [ "$results" -lt "$[lines+1]" ] && [ "$results" -gt "$[lines-7]" ]; then
 		echo $chosenfile
 		# if only running once, compensate by removing two lines from head to display 'one file found' message and filename
-		[ $b -eq 1 ] && (( lines-=2 ))
+		[ $b -eq 1 ] && ((lines-=2))
 		# fill the screen such that only results are shown
-		[ $b -eq 1 ] && head -$(( $lines-2 )) $1 || head -$(( $lines-3 )) $1
+		[ $b -eq 1 ] && head -$[lines-2] $files || head -$[lines-3] $files
 		# make the remainder blank lines
-		for i in $(seq 1 $(( $lines-3 - $results ))); do echo; done
+		for i in $(seq 1 $[lines-results-3]); do echo; done
 		# prompt for input to continue to choosing the file
 		echo "--More--(SPACE)"
 		read -n 1
 		echo
 		# restore number of lines to original amount
-		[ $b -eq 1 ] && (( lines+=2 ))
+		[ $b -eq 1 ] && ((lines+=2))
 		# if results continue to get cut off by the previous screen, print the rest of them
-		if [ $results -gt $(( $lines-2 )) ] && [ $results -lt $(( $lines+1 )) ]; then
+		if [ $results -gt $[lines-2] ] && [ $results -lt $[lines+1] ]; then
 			# continued compensation
-			[ $b -eq 1 ] && (( results+=1 ))
-			tail -$(( $results - $lines+3 )) $1
+			[ $b -eq 1 ] && ((results+=1))
+			tail -$[results-lines+3] $files
 		fi
 	# lots of results
 	elif [ $results -gt $lines ]; then
 		echo $chosenfile
-		more $1
+		more $files
 		echo
 	# just a few results
 	else
 		echo $chosenfile
-		cat $1
+		cat $files
 		echo
 	fi
 	# instructions to choose the file or line number
@@ -102,7 +103,7 @@ decide() {
 	# count the number of characters the user can enter to make their choice
 	local range=$(wc -c <<< $numfiles)
 	# if choosing line number, number of typable characters is one less
-	[ ! -f $foundfiles ] && (( range-- ))
+	[ ! -f $foundfiles ] && ((range--))
 	# instantiate the user input
 	chz=''
 	for i in $(seq 1 $range); do
@@ -152,7 +153,7 @@ sortresults() {
 
 niceprint() {
 	awk -F ":" '!a[$1]++{printf "%2d: ", ++num} b[$1]++{printf "    "}{gsub("\t", "");gsub("    ", ""); print $0}'
-	# !a[$1]++{printf "%2d: ", ++num} - if a result has not been printed yet, increment instance index and print the index next to the result
+	# !a[$1]++{printf "%2d: ", ++num} - if a result has not been printed yet, increment instance index and print the index, then the result
 	# b[$1]++{printf " "}             - whitespace if result has already been printed
 }
 
