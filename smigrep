@@ -28,8 +28,8 @@ elif [ $# -eq 2 ]; then
 else
 	# remove duplicate extensions if they exist
 	in=$(echo ${@:2} | sed -r "s/\./\\\./g" | sed -r "s/\*/\.\*/g")
-	exts=$(awk '{sep=""; for (i=1; i<=NF; i++) {if (!x[$i]++) {printf "%s%s", sep, $i} sep=OFS} print ""}' <<< $in)
-	PARAM="./\($(sed -r "s/ /\\\|/g" <<< $exts)\)"
+	exts=$(echo $in | awk '{sep=""; for (i=1; i<=NF; i++) {if (!x[$i]++) {printf "%s%s", sep, $i} sep=OFS} print ""}')
+	PARAM="./\($(echo $exts | sed -r "s/ /\\\|/g")\)"
 fi
 
 # get the max number of lines that the terminal can display
@@ -101,7 +101,7 @@ decide() {
 	# count the number of results
 	local numfiles=$(egrep '^([0-9]| )[0-9]' $1 | wc -l)
 	# count the number of characters the user can enter to make their choice
-	local range=$(wc -c <<< $numfiles)
+	local range=$(echo $numfiles | wc -c)
 	# if choosing line number, number of typable characters is one less
 	[ ! -f $foundfiles ] && ((range--))
 	# instantiate the user input
