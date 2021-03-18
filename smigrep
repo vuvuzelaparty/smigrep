@@ -35,14 +35,11 @@ fi
 # get the max number of lines that the terminal can display
 lines=$(tput lines)
 
-# function for printing the results
 displayResults() {
 	local results=$(cat $1 | wc -l)
 	local files=$1
-	# if no results, show failure message and exit
 	if [ $results -eq 0 ]; then
 		echo "No matches found" && rm -f /tmp/tmp.* && exit
-	# only one result
 	elif [ $results -eq 1 ]; then
 		# if file is already chosen, go straight into the only occurence in the file
 		[ ! -f $foundfiles ] && vim +/$searchstring $chosenfile && rm -f /tmp/tmp.* && exit
@@ -78,12 +75,10 @@ displayResults() {
 			[ $b -eq 1 ] && ((results+=1))
 			tail -$[results-lines+3] $files
 		fi
-	# lots of results
 	elif [ $results -gt $lines ]; then
 		echo $chosenfile
 		more $files
 		echo
-	# just a few results
 	else
 		echo $chosenfile
 		cat $files
@@ -96,13 +91,11 @@ displayResults() {
 	echo " Anything else: Cancel"
 }
 
-# function for taking user input to choose the file or line number
 decide() {
-	# count the number of results
 	local numfiles=$(egrep '^([0-9]| )[0-9]' $1 | wc -l)
 	# count the number of characters the user can enter to make their choice
 	local range=$(echo $numfiles | wc -c)
-	# if choosing line number, number of typable characters is one less
+	# if choosing line number, number of typeable characters is one less
 	[ ! -f $foundfiles ] && ((range--))
 	# instantiate the user input
 	chz=''
@@ -138,7 +131,6 @@ decide() {
 	echo
 }
 
-# sorts found files by extension input order
 sortresults() {
 	# turn input extensions into array
 	local args=($exts)
@@ -167,9 +159,7 @@ if [[ $PARAM = *"|"* ]]; then
 	sorted=$(mktemp)
 	# find all the matches and sort them alphabetically
 	find -regex "$PARAM" -type f | xargs grep -slHI $searchstring | sort -d > $unsorted
-	# sort the matches
 	sortresults $unsorted $sorted
-	# display the results nicely while preserving the order
 	cat $sorted | niceprint > $foundfiles
 	rm $unsorted
 	rm $sorted
@@ -204,14 +194,11 @@ while read -r line; do
 done < $foundfiles
 # if organizedentries exists, it means that a line number in the chosen file hasn't been chosen yet
 organizedentries=$(mktemp)
-# print the line matches nicely
 cat $entriesinfile | niceprint > $organizedentries
 rm $entriesinfile
 # after the file to open is chosen, foundfiles gets deleted
 rm $foundfiles
 displayResults $organizedentries
 decide $organizedentries
-# takes the input from user and uses it to select the line number
 chosenlinenumber=$(egrep '^[ ]*'$chz'\:' $organizedentries | awk -F ":" '{printf $2}')
-# go into the chosen line number
 vim +/$searchstring +$(echo $chosenlinenumber | $stripcolor) $chosenfile && rm -f /tmp/tmp.*
